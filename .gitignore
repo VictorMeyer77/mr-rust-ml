@@ -1,0 +1,11 @@
+# rust
+
+/target
+debug/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# intellij
+
+/.idea
