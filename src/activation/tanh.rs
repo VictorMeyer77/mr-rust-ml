@@ -56,4 +56,9 @@ mod tests {
             assert!((output_vec[i] - target_vec[i]).powf(2.0) < 0.00001)
         }
     }
+
+    #[test]
+    fn get_name_should_return_struct_name() -> () {
+        assert_eq!(Tanh.get_name(), "Tanh");
+    }
 }

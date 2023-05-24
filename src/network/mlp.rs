@@ -126,7 +126,7 @@ mod tests {
     use std::fs::remove_file;
 
     #[test]
-    fn network_should_build_train_and_predict() -> () {
+    fn mlp_should_build_train_and_predict() -> () {
         let x_train: Array2<f64> = arr2(&[[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]);
         let y_train: Array2<f64> = arr2(&[[0.0], [1.0], [1.0], [0.0]]);
         let x_test: Array2<f64> = arr2(&[[-0.25, -0.25], [0.0, 0.75], [0.75, 0.0], [1.5, 1.5]]);
