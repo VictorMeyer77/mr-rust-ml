@@ -24,8 +24,8 @@ impl FCLayer {
     pub fn build(input_size: usize, output_size: usize) -> FCLayer {
         FCLayer {
             input: Array::zeros((1, input_size)),
-            weights: Array::random((input_size, output_size), Uniform::new(0.0, 1.0)),
-            bias: Array::random((1, output_size), Uniform::new(0.0, 1.0)),
+            weights: Array::random((input_size, output_size), Uniform::new(0.0, 1.0)) - 0.5,
+            bias: Array::random((1, output_size), Uniform::new(0.0, 1.0)) - 0.5,
             shape: (input_size, output_size),
         }
     }
