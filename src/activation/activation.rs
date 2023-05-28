@@ -1,3 +1,4 @@
+use crate::activation::relu::Relu;
 use crate::activation::tanh::Tanh;
 use ndarray::Array2;
 use std::io::{Error, ErrorKind};
@@ -13,6 +14,7 @@ pub trait Activation {
 pub fn from_string(name: String) -> Result<Box<dyn Activation>, Error> {
     match name.to_uppercase().as_str() {
         "TANH" => Ok(Box::new(Tanh)),
+        "RELU" => Ok(Box::new(Relu)),
         _ => Err(Error::new(
             ErrorKind::InvalidInput,
             format!("unknown activation '{}'", name),
@@ -25,10 +27,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn from_string_should_return_activation() -> () {
+    fn from_string_should_return_tanh() -> () {
         assert_eq!(
             from_string("Tanh".to_string()).unwrap().get_name(),
             "Tanh".to_string()
+        );
+    }
+
+    #[test]
+    fn from_string_should_return_relu() -> () {
+        assert_eq!(
+            from_string("Relu".to_string()).unwrap().get_name(),
+            "Relu".to_string()
         );
     }
 

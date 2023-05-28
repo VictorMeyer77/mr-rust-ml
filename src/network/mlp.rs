@@ -158,16 +158,16 @@ impl Network<Mlp> for Mlp {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
     use super::*;
     use crate::activation::tanh::Tanh;
     use crate::layer::activation_layer::ActivationLayer;
     use crate::layer::fc_layer::FCLayer;
     use crate::loss::mse::Mse;
     use ndarray::{arr2, Array1};
+    use ndarray_stats::QuantileExt;
+    use std::fs;
     use std::fs::remove_file;
     use std::path::Path;
-    use ndarray_stats::QuantileExt;
 
     #[test]
     fn mlp_should_build_train_and_predict() -> () {
@@ -202,7 +202,6 @@ mod tests {
         assert!(Path::new("./test_report_mlp_1/999").exists());
 
         fs::remove_dir_all("./test_report_mlp_1").unwrap();
-
     }
 
     #[test]
