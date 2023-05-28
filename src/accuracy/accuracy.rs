@@ -1,7 +1,7 @@
 use ndarray::{Array1, Array2, Axis};
 use ndarray_stats::QuantileExt;
 
-pub fn accuracy(function: &str, y_pred: Array2<f64>, y_true: Array2<f64>) -> f64 {
+pub fn accuracy(function: &str, y_pred: &Array2<f64>, y_true: &Array2<f64>) -> f64 {
     if y_pred.shape() != y_true.shape() {
         panic!(
             "shapes are not equals {:?} != {:?}",
@@ -15,7 +15,7 @@ pub fn accuracy(function: &str, y_pred: Array2<f64>, y_true: Array2<f64>) -> f64
     }
 }
 
-fn categorical_accuracy(y_pred: Array2<f64>, y_true: Array2<f64>) -> f64 {
+fn categorical_accuracy(y_pred: &Array2<f64>, y_true: &Array2<f64>) -> f64 {
     if y_pred.shape()[1] < 2 || y_true.shape()[1] < 2 {
         panic!("array must be one hot encoding");
     }
@@ -49,7 +49,7 @@ mod tests {
             [1.0, 0.0, 0.0],
             [1.0, 0.0, 0.0],
         ]);
-        assert_eq!(accuracy("categorical_accuracy", y_pred, y_true), 0.75)
+        assert_eq!(accuracy("categorical_accuracy", &y_pred, &y_true), 0.75)
     }
 
     #[test]
@@ -57,13 +57,13 @@ mod tests {
     fn categorical_accuracy_should_panic_when_arrays_are_not_one_hot() -> () {
         let y_pred: Array2<f64> = arr2(&[[0.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0]]);
         let y_true: Array2<f64> = arr2(&[[0.0], [1.0], [0.0], [0.0], [1.0], [0.0], [1.0], [0.0]]);
-        accuracy("categorical_accuracy", y_pred, y_true);
+        accuracy("categorical_accuracy", &y_pred, &y_true);
     }
 
     #[test]
     #[should_panic(expected = "unknown accuracy function 'Unknown'")]
     fn accuracy_should_panic_when_function_is_unknown() -> () {
-        accuracy("Unknown", Array2::zeros((0, 0)), Array2::zeros((0, 0)));
+        accuracy("Unknown", &Array2::zeros((0, 0)), &Array2::zeros((0, 0)));
     }
 
     #[test]
@@ -76,6 +76,6 @@ mod tests {
             [1.0, 0.0, 0.0],
             [1.0, 0.0, 0.0],
         ]);
-        accuracy("categorical_accuracy", y_pred, y_true);
+        accuracy("categorical_accuracy", &y_pred, &y_true);
     }
 }
