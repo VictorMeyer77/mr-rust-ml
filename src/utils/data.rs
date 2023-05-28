@@ -3,7 +3,7 @@ use ndarray_stats::QuantileExt;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
-pub fn one_hot_encoding(x: Array2<f64>) -> Array2<f64> {
+pub fn one_hot_encoding(x: &Array2<f64>) -> Array2<f64> {
     if x.shape()[1] != 1 {
         panic!(
             "array must have only one column, actually: {}",
@@ -20,7 +20,7 @@ pub fn one_hot_encoding(x: Array2<f64>) -> Array2<f64> {
     Array2::from_shape_vec((x.len(), max + 1), one_hot_vec_buffer).unwrap()
 }
 
-pub fn shuffle_arrays(arrays: Vec<Array2<f64>>) -> Vec<Array2<f64>> {
+pub fn shuffle_arrays(arrays: Vec<&Array2<f64>>) -> Vec<Array2<f64>> {
     let array_lens: Vec<usize> = arrays.iter().map(|array| array.shape()[0]).collect();
     if array_lens
         .iter()
@@ -46,7 +46,7 @@ mod tests {
     #[test]
     fn one_hot_encoding_should_encode_array() -> () {
         let x: Array2<f64> = arr2(&[[0.0], [1.0], [2.0], [3.0]]);
-        let x_one_hot: Array2<f64> = one_hot_encoding(x);
+        let x_one_hot: Array2<f64> = one_hot_encoding(&x);
         assert_eq!(
             x_one_hot,
             arr2(&[
@@ -62,14 +62,14 @@ mod tests {
     #[should_panic(expected = "array must have only one column, actually: 2")]
     fn one_hot_encoding_should_panic_when_array_has_not_one_column() -> () {
         let x: Array2<f64> = arr2(&[[0.0, 3.0]]);
-        one_hot_encoding(x);
+        one_hot_encoding(&x);
     }
 
     #[test]
     fn shuffle_arrays_should_same_shuffle_vec_of_arrays() -> () {
         let x: Array2<f64> = arr2(&[[0.0], [1.0], [2.0], [3.0]]);
         let y: Array2<f64> = x.clone();
-        let shuffle_arrays: Vec<Array2<f64>> = shuffle_arrays(vec![x, y]);
+        let shuffle_arrays: Vec<Array2<f64>> = shuffle_arrays(vec![&x, &y]);
         assert_eq!(shuffle_arrays[0], shuffle_arrays[1]);
         assert!(shuffle_arrays[0] != arr2(&[[0.0], [1.0], [2.0], [3.0]]));
     }
@@ -79,6 +79,6 @@ mod tests {
     fn shuffle_arrays_should_should_panic_when_arrays_have_not_same_size() -> () {
         let x: Array2<f64> = arr2(&[[0.0], [1.0], [2.0], [3.0]]);
         let y: Array2<f64> = arr2(&[[0.0], [1.0], [2.0]]);
-        shuffle_arrays(vec![x, y]);
+        shuffle_arrays(vec![&x, &y]);
     }
 }
