@@ -1,12 +1,15 @@
+use crate::accuracy::accuracy::accuracy;
 use crate::layer::layer;
 use crate::layer::layer::Layer;
 use crate::loss::loss;
 use crate::loss::loss::Loss;
 use crate::network::network::Network;
+use crate::report::report::Report;
 use ndarray::{Array2, Axis};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs::read_to_string;
+use std::time::Instant;
 
 pub struct Mlp {
     layers: Vec<Box<dyn Layer>>,
@@ -45,11 +48,24 @@ impl Mlp {
 
     pub fn fit(
         &mut self,
-        x_train: Array2<f64>,
-        y_train: Array2<f64>,
+        x_train: &Array2<f64>,
+        y_train: &Array2<f64>,
+        x_test: Option<&Array2<f64>>,
+        y_test: Option<&Array2<f64>>,
         epochs: usize,
         learning_rate: f64,
+        accuracy_function: &str,
+        report: &mut Report,
+        report_step: usize,
     ) -> () {
+        let start: Instant = Instant::now();
+        let (x_test_shape, y_test_shape): (Option<&[usize]>, Option<&[usize]>) =
+            if x_test.is_some() && y_test.is_some() {
+                (Some(x_test.unwrap().shape()), Some(y_test.unwrap().shape()))
+            } else {
+                (None, None)
+            };
+
         for i in 0..epochs {
             let mut error: f64 = 0.0;
 
@@ -69,12 +85,37 @@ impl Mlp {
                 })
             }
 
+            let train_accuracy: f64 =
+                accuracy(accuracy_function, &self.predict(&x_train), &y_train);
+            let train_loss: f64 = error / x_train.shape()[0] as f64;
+            let test_accuracy: Option<f64> = if x_test.is_some() && y_test.is_some() {
+                Some(accuracy(
+                    accuracy_function,
+                    &self.predict(&x_test.unwrap()),
+                    &y_test.unwrap(),
+                ))
+            } else {
+                None
+            };
+            report.add_data(i, train_accuracy, train_loss, test_accuracy);
+
             println!(
-                "epochs {}/{} error {}",
-                i,
-                epochs,
-                error / x_train.shape()[0] as f64
+                "epochs {}/{} train loss {} train accuracy {}",
+                i, epochs, train_loss, train_accuracy
             );
+            if i > 0 && (i % report_step == 0 || i == epochs - 1) {
+                report.generate(
+                    self.get_name().as_str(),
+                    start,
+                    epochs,
+                    x_train.shape(),
+                    y_train.shape(),
+                    x_test_shape,
+                    y_test_shape,
+                    accuracy_function,
+                    self.loss.get_name().as_str(),
+                );
+            }
         }
     }
 }
@@ -117,32 +158,51 @@ impl Network<Mlp> for Mlp {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
     use super::*;
     use crate::activation::tanh::Tanh;
     use crate::layer::activation_layer::ActivationLayer;
     use crate::layer::fc_layer::FCLayer;
     use crate::loss::mse::Mse;
-    use ndarray::arr2;
+    use ndarray::{arr2, Array1};
     use std::fs::remove_file;
+    use std::path::Path;
+    use ndarray_stats::QuantileExt;
 
     #[test]
     fn mlp_should_build_train_and_predict() -> () {
         let x_train: Array2<f64> = arr2(&[[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]);
-        let y_train: Array2<f64> = arr2(&[[0.0], [1.0], [1.0], [0.0]]);
-        let x_test: Array2<f64> = arr2(&[[-0.25, -0.25], [0.0, 0.75], [0.75, 0.0], [1.5, 1.5]]);
+        let y_train: Array2<f64> = arr2(&[[1.0, 0.0], [0.0, 1.0], [0.0, 1.0], [1.0, 0.0]]);
+        let x_test: Array2<f64> = arr2(&[[-0.05, -0.05], [0.0, 0.95], [0.95, 0.0], [1.05, 1.05]]);
+        let y_test: Array2<f64> = arr2(&[[1.0, 0.0], [0.0, 1.0], [0.0, 1.0], [1.0, 0.0]]);
 
         let mut mlp: Mlp = Mlp::build(Box::new(Mse));
         mlp.add_layer(Box::new(FCLayer::build(2, 3)));
         mlp.add_layer(Box::new(ActivationLayer::build(Box::new(Tanh), 3, 3)));
-        mlp.add_layer(Box::new(FCLayer::build(3, 1)));
-        mlp.add_layer(Box::new(ActivationLayer::build(Box::new(Tanh), 3, 1)));
+        mlp.add_layer(Box::new(FCLayer::build(3, 2)));
+        mlp.add_layer(Box::new(ActivationLayer::build(Box::new(Tanh), 3, 2)));
 
-        mlp.fit(x_train, y_train, 2000, 0.1);
+        mlp.fit(
+            &x_train,
+            &y_train,
+            Some(&x_test),
+            Some(&y_test),
+            1000,
+            0.1,
+            "categorical_accuracy",
+            &mut Report::build("./test_report_mlp_1"),
+            500,
+        );
+
         let result: Array2<f64> = mlp.predict(&x_test);
-        let result_vec: Vec<f64> = result.into_raw_vec();
+        let result_argmax: Array1<usize> = result.map_axis(Axis(1), |row| row.argmax().unwrap());
         assert_eq!(mlp.layers.len(), 4);
-        assert!(result_vec[0] < 0.5 && result_vec[3] < 0.5);
-        assert!(result_vec[1] > 0.5 && result_vec[2] > 0.5);
+        assert_eq!(result_argmax, Array1::from_vec(vec![0, 1, 1, 0]));
+        assert!(Path::new("./test_report_mlp_1/500").exists());
+        assert!(Path::new("./test_report_mlp_1/999").exists());
+
+        fs::remove_dir_all("./test_report_mlp_1").unwrap();
+
     }
 
     #[test]
@@ -167,24 +227,35 @@ mod tests {
     #[test]
     fn from_json_should_deserialize_mlp() -> () {
         let x_train: Array2<f64> = arr2(&[[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]);
-        let y_train: Array2<f64> = arr2(&[[0.0], [1.0], [1.0], [0.0]]);
-        let x_test: Array2<f64> = arr2(&[[-0.25, -0.25], [0.0, 0.75], [0.75, 0.0], [1.5, 1.5]]);
+        let y_train: Array2<f64> = arr2(&[[1.0, 0.0], [0.0, 1.0], [0.0, 1.0], [1.0, 0.0]]);
+        let x_test: Array2<f64> = arr2(&[[-0.05, -0.05], [0.0, 0.95], [0.95, 0.0], [1.05, 1.05]]);
 
         let mut mlp: Mlp = Mlp::build(Box::new(Mse));
         mlp.add_layer(Box::new(FCLayer::build(2, 3)));
         mlp.add_layer(Box::new(ActivationLayer::build(Box::new(Tanh), 3, 3)));
-        mlp.add_layer(Box::new(FCLayer::build(3, 1)));
-        mlp.add_layer(Box::new(ActivationLayer::build(Box::new(Tanh), 3, 1)));
-        mlp.fit(x_train, y_train, 2000, 0.1);
+        mlp.add_layer(Box::new(FCLayer::build(3, 2)));
+        mlp.add_layer(Box::new(ActivationLayer::build(Box::new(Tanh), 3, 2)));
+
+        mlp.fit(
+            &x_train,
+            &y_train,
+            None,
+            None,
+            1000,
+            0.1,
+            "categorical_accuracy",
+            &mut Report::build("./test_report_mlp_2"),
+            500,
+        );
 
         let network_str: String = mlp.to_json().unwrap();
         let mut mlp: Mlp = Mlp::from_json(network_str.as_str()).unwrap();
 
         let result: Array2<f64> = mlp.predict(&x_test);
-        let result_vec: Vec<f64> = result.into_raw_vec();
+        let result_argmax: Array1<usize> = result.map_axis(Axis(1), |row| row.argmax().unwrap());
         assert_eq!(mlp.layers.len(), 4);
-        assert!(result_vec[0] < 0.5 && result_vec[3] < 0.5);
-        assert!(result_vec[1] > 0.5 && result_vec[2] > 0.5);
+        assert_eq!(result_argmax, Array1::from_vec(vec![0, 1, 1, 0]));
+        fs::remove_dir_all("./test_report_mlp_2").unwrap();
     }
 
     #[test]
