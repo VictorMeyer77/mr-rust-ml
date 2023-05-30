@@ -1,4 +1,6 @@
-use ndarray::{s, Array1, Array2, Array3, ArrayView2, Axis};
+use ndarray::{s, Array, Array1, Array2, Array3, ArrayView2, Axis};
+use ndarray_rand::rand_distr::Uniform;
+use ndarray_rand::RandomExt;
 
 pub struct ConvLayer<'a> {
     input: Option<&'a Array2<f64>>,
@@ -8,6 +10,18 @@ pub struct ConvLayer<'a> {
 }
 
 impl<'a> ConvLayer<'a> {
+    fn build(kernel_size: usize, kernel_num: usize) -> ConvLayer<'a> {
+        ConvLayer {
+            input: None,
+            kernel_size,
+            kernel_num,
+            kernels: Array::random(
+                (kernel_num, kernel_size, kernel_size),
+                Uniform::new(0.0, 1.0),
+            ) / kernel_size.pow(2) as f64,
+        }
+    }
+
     fn image_to_patches(&mut self, x: &'a Array2<f64>) -> Vec<(ArrayView2<f64>, usize, usize)> {
         self.input = Some(&x);
         let shape: &[usize] = x.shape();
@@ -104,7 +118,13 @@ mod tests {
     }
 
     #[test]
-    fn build_should_initialize_layer() -> () {}
+    fn build_should_initialize_layer() -> () {
+        let layer: ConvLayer = ConvLayer::build(2, 2);
+        assert!(layer.input.is_none());
+        assert_eq!(layer.kernel_size, 2);
+        assert_eq!(layer.kernel_num, 2);
+        assert_eq!(layer.kernels.shape(), &[2, 2, 2]);
+    }
 
     #[test]
     fn image_to_patches_should_return_vec_of_pattern() -> () {
