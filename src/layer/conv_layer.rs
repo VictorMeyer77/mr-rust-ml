@@ -2,6 +2,7 @@ use ndarray::{s, Array, Array1, Array2, Array3, ArrayView2, Axis};
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
 
+#[derive(Debug)]
 pub struct ConvLayer<'a> {
     input: Option<&'a Array2<f64>>,
     kernel_size: usize,
