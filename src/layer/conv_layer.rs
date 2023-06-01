@@ -11,7 +11,7 @@ pub struct ConvLayer<'a> {
 }
 
 impl<'a> ConvLayer<'a> {
-    fn build(kernel_size: usize, kernel_num: usize) -> ConvLayer<'a> {
+    pub fn build(kernel_size: usize, kernel_num: usize) -> ConvLayer<'a> {
         ConvLayer {
             input: None,
             kernel_size,
@@ -39,7 +39,7 @@ impl<'a> ConvLayer<'a> {
         patches_buffer
     }
 
-    fn forward_propagation(&mut self, x: &'a Array2<f64>) -> Array3<f64> {
+    pub fn forward_propagation(&mut self, x: &'a Array2<f64>) -> Array3<f64> {
         let shape: &[usize] = x.shape();
         let mut convolution_buffer: Vec<f64> = vec![];
         let kernel_buffer: Array3<f64> = self.kernels.clone();
@@ -59,7 +59,7 @@ impl<'a> ConvLayer<'a> {
         .unwrap()
     }
 
-    fn backward_propagation(&mut self, y: &Array3<f64>, learning_rate: f64) -> Array3<f64> {
+    pub fn backward_propagation(&mut self, y: &Array3<f64>, learning_rate: f64) -> Array3<f64> {
         let kernel_num: usize = self.kernel_num.clone();
         let mut kernel_error: Array3<f64> =
             Array3::zeros((self.kernel_num, self.kernel_size, self.kernel_size));

@@ -6,20 +6,20 @@ pub struct FlattenLayer {
 }
 
 impl FlattenLayer {
-    fn new() -> FlattenLayer {
+    pub fn new() -> FlattenLayer {
         FlattenLayer {
             input_shape: (0, 0, 0),
         }
     }
 
-    fn forward_propagation(&mut self, x: &Array3<f64>) -> Array2<f64> {
+    pub fn forward_propagation(&mut self, x: &Array3<f64>) -> Array2<f64> {
         let x_clone: Array3<f64> = (*x).clone();
         let shape: &[usize] = x_clone.shape();
         self.input_shape = (shape[0], shape[1], shape[2]);
         Array2::from_shape_vec((1, x_clone.len()), x_clone.into_raw_vec()).unwrap()
     }
 
-    fn backward_propagation(&self, y: Array2<f64>) -> Array3<f64> {
+    pub fn backward_propagation(&self, y: Array2<f64>) -> Array3<f64> {
         Array3::from_shape_vec(self.input_shape, y.into_raw_vec()).unwrap()
     }
 }

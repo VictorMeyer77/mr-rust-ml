@@ -8,7 +8,7 @@ pub struct MaxPoolingLayer<'a> {
 }
 
 impl<'a> MaxPoolingLayer<'a> {
-    fn build(kernel_size: usize) -> MaxPoolingLayer<'a> {
+    pub fn build(kernel_size: usize) -> MaxPoolingLayer<'a> {
         MaxPoolingLayer {
             input: None,
             kernel_size,
@@ -35,7 +35,7 @@ impl<'a> MaxPoolingLayer<'a> {
         patches_buffer
     }
 
-    fn forward_propagation(&mut self, x: &'a Array3<f64>) -> Array3<f64> {
+    pub fn forward_propagation(&mut self, x: &'a Array3<f64>) -> Array3<f64> {
         let x_shape: &[usize] = x.shape();
         let mut max_pooling_output: Array3<f64> = Array3::zeros((
             x_shape[0] / self.kernel_size,
@@ -51,7 +51,7 @@ impl<'a> MaxPoolingLayer<'a> {
         max_pooling_output
     }
 
-    fn backward_propagation(&mut self, y: &Array3<f64>, _learning_rate: f64) -> Array3<f64> {
+    pub fn backward_propagation(&mut self, y: &Array3<f64>, _learning_rate: f64) -> Array3<f64> {
         let input_shape: &[usize] = self.input.unwrap().shape();
         let mut kernel_error: Array3<f64> =
             Array3::zeros((input_shape[0], input_shape[1], input_shape[2]));
