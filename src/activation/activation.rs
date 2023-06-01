@@ -1,5 +1,6 @@
 use crate::activation::relu::Relu;
 use crate::activation::sigmoid::Sigmoid;
+use crate::activation::softmax::Softmax;
 use crate::activation::tanh::Tanh;
 use ndarray::Array2;
 use std::io::{Error, ErrorKind};
@@ -17,6 +18,7 @@ pub fn from_string(name: String) -> Result<Box<dyn Activation>, Error> {
         "TANH" => Ok(Box::new(Tanh)),
         "RELU" => Ok(Box::new(Relu)),
         "SIGMOID" => Ok(Box::new(Sigmoid)),
+        "SOFTMAX" => Ok(Box::new(Softmax)),
         _ => Err(Error::new(
             ErrorKind::InvalidInput,
             format!("unknown activation '{}'", name),
@@ -41,6 +43,10 @@ mod tests {
         assert_eq!(
             from_string("Sigmoid".to_string()).unwrap().get_name(),
             "Sigmoid".to_string()
+        );
+        assert_eq!(
+            from_string("Softmax".to_string()).unwrap().get_name(),
+            "Softmax".to_string()
         );
     }
 
