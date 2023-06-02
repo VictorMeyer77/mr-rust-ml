@@ -24,21 +24,20 @@ mod tests {
     use ndarray::arr2;
 
     #[test]
-    fn activation_mse_function() -> () {
+    fn loss_mse_function() -> () {
         let mse: Mse = Mse;
-        let y_pred: Array2<f64> = arr2(&[[1.0, 2.0, 1.0, 0.0]]);
-        let y_true: Array2<f64> = arr2(&[[2.0, 1.0, 1.0, 0.0]]);
-        let output: f64 = mse.function(&y_pred, &y_true);
-        println!("{}", output);
+        let y_true: Array2<f64> = arr2(&[[1.0, 2.0, 1.0, 0.0]]);
+        let y_pred: Array2<f64> = arr2(&[[2.0, 1.0, 1.0, 0.0]]);
+        let output: f64 = mse.function(&y_true, &y_pred);
         assert!((output - 0.5).sqrt() < 0.0001)
     }
 
     #[test]
-    fn activation_mse_derivative() -> () {
+    fn loss_mse_derivative() -> () {
         let mse: Mse = Mse;
-        let y_pred: Array2<f64> = arr2(&[[1.0, 2.0, 1.0, 0.0]]);
-        let y_true: Array2<f64> = arr2(&[[2.0, 1.0, 1.0, 0.0]]);
-        let output: Array2<f64> = mse.derivative(&y_pred, &y_true);
+        let y_true: Array2<f64> = arr2(&[[1.0, 2.0, 1.0, 0.0]]);
+        let y_pred: Array2<f64> = arr2(&[[2.0, 1.0, 1.0, 0.0]]);
+        let output: Array2<f64> = mse.derivative(&y_true, &y_pred);
         let target: Array2<f64> = arr2(&[[0.5, -0.5, 0.0, 0.0]]);
         assert_eq!(output.shape(), target.shape());
         let output_vec: Vec<f64> = output.into_raw_vec();
