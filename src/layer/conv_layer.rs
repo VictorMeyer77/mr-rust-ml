@@ -1,10 +1,10 @@
-use ndarray::{s, Array, Array1, Array2, Array3, ArrayView2, Axis};
+use ndarray::{s, Array, Array1, Array2, Array3, ArrayView2, ArrayView3, Axis};
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
 
 #[derive(Debug)]
 pub struct ConvLayer<'a> {
-    input: Option<&'a Array2<f64>>,
+    input: Option<&'a ArrayView2<'a, f64>>,
     kernel_size: usize,
     kernel_num: usize,
     kernels: Array3<f64>,
@@ -23,8 +23,11 @@ impl<'a> ConvLayer<'a> {
         }
     }
 
-    fn image_to_patches(&mut self, x: &'a Array2<f64>) -> Vec<(ArrayView2<f64>, usize, usize)> {
-        self.input = Some(&x);
+    fn image_to_patches(
+        &mut self,
+        x: &'a ArrayView2<'a, f64>,
+    ) -> Vec<(ArrayView2<f64>, usize, usize)> {
+        self.input = Some(x);
         let shape: &[usize] = x.shape();
         let mut patches_buffer: Vec<(ArrayView2<f64>, usize, usize)> = vec![];
         for h in 0..(shape[0] - self.kernel_size + 1) {
@@ -39,7 +42,7 @@ impl<'a> ConvLayer<'a> {
         patches_buffer
     }
 
-    pub fn forward_propagation(&mut self, x: &'a Array2<f64>) -> Array3<f64> {
+    pub fn forward_propagation(&mut self, x: &'a ArrayView2<'a, f64>) -> Array3<f64> {
         let shape: &[usize] = x.shape();
         let mut convolution_buffer: Vec<f64> = vec![];
         let kernel_buffer: Array3<f64> = self.kernels.clone();
@@ -59,7 +62,11 @@ impl<'a> ConvLayer<'a> {
         .unwrap()
     }
 
-    pub fn backward_propagation(&mut self, y: &Array3<f64>, learning_rate: f64) -> Array3<f64> {
+    pub fn backward_propagation(
+        &mut self,
+        y: &ArrayView3<'a, f64>,
+        learning_rate: f64,
+    ) -> Array3<f64> {
         let kernel_num: usize = self.kernel_num.clone();
         let mut kernel_error: Array3<f64> =
             Array3::zeros((self.kernel_num, self.kernel_size, self.kernel_size));
@@ -77,28 +84,6 @@ impl<'a> ConvLayer<'a> {
         kernel_error
     }
 }
-/*
-impl Layer for ConvLayer {
-    fn forward_propagation(&mut self, x: &Array2<f64>) -> Array2<f64> {
-        todo!()
-    }
-
-    fn backward_propagation(&mut self, y: &Array2<f64>, learning_rate: f64) -> Array2<f64> {
-        todo!()
-    }
-
-    fn get_shape(&self) -> (usize, usize) {
-        todo!()
-    }
-
-    fn get_name(&self) -> String {
-        todo!()
-    }
-
-    fn to_json(&self) -> Result<String, Box<dyn Error>> {
-        todo!()
-    }
-}*/
 
 #[cfg(test)]
 mod tests {
@@ -136,7 +121,8 @@ mod tests {
             [2.0, 5.0, 7.0, 9.0],
             [6.0, 6.0, 7.0, 9.0],
         ]);
-        let output: Vec<(ArrayView2<f64>, usize, usize)> = layer.image_to_patches(&x);
+        let x_view: ArrayView2<f64> = x.view();
+        let output: Vec<(ArrayView2<f64>, usize, usize)> = layer.image_to_patches(&x_view);
         let target: Vec<(Array2<f64>, usize, usize)> = vec![
             (
                 Array2::from_shape_vec((2, 2), vec![6.0, 6.0, 4.0, 6.0]).unwrap(),
@@ -201,7 +187,8 @@ mod tests {
             [2.0, 5.0, 7.0, 9.0],
             [6.0, 6.0, 7.0, 9.0],
         ]);
-        let output: Array3<f64> = layer.forward_propagation(&x);
+        let x_view: ArrayView2<f64> = x.view();
+        let output: Array3<f64> = layer.forward_propagation(&x_view);
         let target: Array3<f64> = Array3::from_shape_vec(
             (3, 3, 2),
             vec![
@@ -222,7 +209,8 @@ mod tests {
             [2.0, 5.0, 7.0, 9.0],
             [6.0, 6.0, 7.0, 9.0],
         ]);
-        layer.forward_propagation(&x);
+        let x_view: ArrayView2<f64> = x.view();
+        layer.forward_propagation(&x_view);
         let error: Array3<f64> = Array3::from_shape_vec(
             (3, 3, 2),
             vec![
@@ -231,12 +219,13 @@ mod tests {
             ],
         )
         .unwrap();
+        let error_view: ArrayView3<f64> = error.view();
         let target: Array3<f64> = Array3::from_shape_vec(
             (2, 2, 2),
             vec![47.4, 66.9, 53.2, 66.1, 52.4, 73.6, 58.2, 72.6],
         )
         .unwrap();
-        let output: Array3<f64> = layer.backward_propagation(&error, 0.1);
+        let output: Array3<f64> = layer.backward_propagation(&error_view, 0.1);
         assert_eq!(target.shape(), output.shape());
         let target_vec: Vec<f64> = target.into_raw_vec();
         let output_vec: Vec<f64> = output.into_raw_vec();

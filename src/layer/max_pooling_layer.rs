@@ -3,7 +3,7 @@ use ndarray_stats::QuantileExt;
 
 #[derive(Debug)]
 pub struct MaxPoolingLayer<'a> {
-    input: Option<&'a Array3<f64>>,
+    input: Option<&'a ArrayView3<'a, f64>>,
     kernel_size: usize,
 }
 
@@ -15,8 +15,11 @@ impl<'a> MaxPoolingLayer<'a> {
         }
     }
 
-    fn image_to_patches(&mut self, x: &'a Array3<f64>) -> Vec<(ArrayView3<f64>, usize, usize)> {
-        self.input = Some(&x);
+    fn image_to_patches(
+        &mut self,
+        x: &'a ArrayView3<'a, f64>,
+    ) -> Vec<(ArrayView3<f64>, usize, usize)> {
+        self.input = Some(x);
         let shape: &[usize] = x.shape();
         let mut patches_buffer: Vec<(ArrayView3<f64>, usize, usize)> = vec![];
         for h in 0..(shape[0] / self.kernel_size) {
@@ -35,7 +38,7 @@ impl<'a> MaxPoolingLayer<'a> {
         patches_buffer
     }
 
-    pub fn forward_propagation(&mut self, x: &'a Array3<f64>) -> Array3<f64> {
+    pub fn forward_propagation(&mut self, x: &'a ArrayView3<'a, f64>) -> Array3<f64> {
         let x_shape: &[usize] = x.shape();
         let mut max_pooling_output: Array3<f64> = Array3::zeros((
             x_shape[0] / self.kernel_size,
@@ -51,7 +54,11 @@ impl<'a> MaxPoolingLayer<'a> {
         max_pooling_output
     }
 
-    pub fn backward_propagation(&mut self, y: &Array3<f64>, _learning_rate: f64) -> Array3<f64> {
+    pub fn backward_propagation(
+        &mut self,
+        y: &'a ArrayView3<'a, f64>,
+        _learning_rate: f64,
+    ) -> Array3<f64> {
         let input_shape: &[usize] = self.input.unwrap().shape();
         let mut kernel_error: Array3<f64> =
             Array3::zeros((input_shape[0], input_shape[1], input_shape[2]));
@@ -105,7 +112,8 @@ mod tests {
             [[22.5, 38.5], [34.5, 58.0], [44.5, 76.5]],
             [[28.5, 51.5], [35.0, 61.5], [44.5, 76.5]],
         ]);
-        let output: Vec<(ArrayView3<f64>, usize, usize)> = layer.image_to_patches(&x);
+        let x_view: ArrayView3<f64> = x.view();
+        let output: Vec<(ArrayView3<f64>, usize, usize)> = layer.image_to_patches(&x_view);
         let target: Vec<(Array3<f64>, usize, usize)> = vec![(
             Array3::from_shape_vec(
                 (2, 2, 2),
@@ -131,7 +139,8 @@ mod tests {
             [[22.5, 38.5], [34.5, 58.0], [44.5, 76.5]],
             [[28.5, 51.5], [35.0, 61.5], [44.5, 76.5]],
         ]);
-        let output: Array3<f64> = layer.forward_propagation(&x);
+        let x_view: ArrayView3<f64> = x.view();
+        let output: Array3<f64> = layer.forward_propagation(&x_view);
         assert_eq!(
             output,
             Array3::from_shape_vec((1, 1, 2), vec![36.0, 62.0]).unwrap()
@@ -146,8 +155,9 @@ mod tests {
             [[22.5, 38.5], [34.5, 58.0], [44.5, 76.5]],
             [[28.5, 51.5], [35.0, 61.5], [44.5, 76.5]],
         ]);
-        layer.forward_propagation(&x);
-        let output: Array3<f64> = layer.backward_propagation(&x, 0.0);
+        let x_view: ArrayView3<f64> = x.view();
+        layer.forward_propagation(&x_view);
+        let output: Array3<f64> = layer.backward_propagation(&x_view, 0.0);
         let target: Array3<f64> = Array3::from_shape_vec(
             (3, 3, 2),
             vec![
